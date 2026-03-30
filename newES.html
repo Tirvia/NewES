@@ -78,7 +78,6 @@
         {
             id: "1",
             name: "Сэндвич с говядиной и сыром Чеддер",
-            shortName: "Сэндв. с гов. и сыр Чеддер",
             imageIn: "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop",
             imageOut: "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop",
             weight: "250 г",
@@ -111,7 +110,6 @@
         {
             id: "2",
             name: "Яйца Бенедикт",
-            shortName: "Яйца Бенедикт",
             imageIn: "https://images.unsplash.com/photo-1608039825572-c5f6c9c6f1d6?w=400&h=400&fit=crop",
             imageOut: "https://images.unsplash.com/photo-1608039825572-c5f6c9c6f1d6?w=400&h=400&fit=crop",
             weight: "180 г",
@@ -137,7 +135,6 @@
         {
             id: "3",
             name: "Чизбургер",
-            shortName: "Чизбургер",
             imageIn: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
             imageOut: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
             weight: "300 г",
@@ -162,7 +159,6 @@
         {
             id: "4",
             name: "Латте",
-            shortName: "Латте",
             imageIn: "https://images.unsplash.com/photo-1570968915860-54d5c4a9b2b4?w=400&h=400&fit=crop",
             imageOut: "https://images.unsplash.com/photo-1570968915860-54d5c4a9b2b4?w=400&h=400&fit=crop",
             weight: "300 мл",
@@ -187,7 +183,6 @@
         {
             id: "5",
             name: "Мохито",
-            shortName: "Мохито",
             imageIn: "https://images.unsplash.com/photo-1551538827-9c037cb4f32c?w=400&h=400&fit=crop",
             imageOut: "https://images.unsplash.com/photo-1551538827-9c037cb4f32c?w=400&h=400&fit=crop",
             weight: "250 мл",
@@ -451,7 +446,7 @@
         }
     }
 
-    // Генерация вкладки Кухня (используем короткое имя)
+    // Генерация вкладки Кухня (полное имя, вес рядом с заголовком Ингредиенты)
     function generateKitchenTab(dish) {
         const currentImage = detailPhotoMode === 'hall' ? dish.imageIn : dish.imageOut;
         const fullRecipeHtml = dish.rows.map(row => `
@@ -461,14 +456,11 @@
         return `
             <div class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="flex flex-wrap justify-between items-start mb-4 gap-2">
-                    <div>
-                        <h1 class="text-2xl font-bold">${escapeHtml(dish.shortName)}</h1>
-                        <div class="flex gap-2 mt-2">
-                            <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
-                            <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
-                        </div>
+                    <h1 class="text-2xl font-bold">${escapeHtml(dish.name)}</h1>
+                    <div class="flex gap-2">
+                        <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
+                        <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
                     </div>
-                    <span class="text-sm">${dish.weight || "—"}</span>
                 </div>
 
                 <div class="flex gap-2 mb-6">
@@ -482,7 +474,10 @@
                         <img src="${currentImage}" alt="${dish.name}" class="dish-photo rounded-2xl shadow-md">
                     </div>
                     <div>
-                        <h2 class="font-semibold text-lg mb-2">Ингредиенты</h2>
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="font-semibold text-lg">Ингредиенты</h2>
+                            <span class="text-sm text-gray-600">Выход: ${escapeHtml(dish.weight)}</span>
+                        </div>
                         <ul class="space-y-2">
                             ${dish.rows.map(row => `
                                 <li class="flex justify-between border-b pb-1">
@@ -519,10 +514,9 @@
         `;
     }
 
-    // Генерация вкладки Зал (используем полное имя)
+    // Генерация вкладки Зал (полное имя)
     function generateHallTab(dish) {
         const currentImage = detailPhotoMode === 'hall' ? dish.imageIn : dish.imageOut;
-        // Модификаторы (граммовка) – размещаем в правой колонке после состава
         const modifiersHtml = dish.modifiers && dish.modifiers.length ? `
             <div class="mt-4 pt-2 border-t border-gray-200">
                 <h3 class="font-semibold text-md mb-2">Модификаторы</h3>
@@ -540,14 +534,12 @@
         return `
             <div class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="flex flex-wrap justify-between items-start mb-4 gap-2">
-                    <div>
-                        <h1 class="text-2xl font-bold">${escapeHtml(dish.name)}</h1>
-                        <div class="flex gap-2 mt-2">
-                            <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
-                            <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
-                        </div>
+                    <h1 class="text-2xl font-bold">${escapeHtml(dish.name)}</h1>
+                    <div class="flex gap-2">
+                        <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
+                        <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
+                        <button id="printBtnHall" class="px-4 py-2 border rounded-md flex items-center gap-1 hidden md:inline-flex">🖨 Печать</button>
                     </div>
-                    <button id="printBtnHall" class="px-4 py-2 border rounded-md flex items-center gap-1 hidden md:inline-flex">🖨 Печать</button>
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-6">
