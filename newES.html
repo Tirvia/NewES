@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GARAGE — обучение персонала</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Плавное появление/скрытие для expandable блоков (для ПФ) */
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .expandable-content.open {
+            max-height: 500px;
+            transition: max-height 0.4s ease-in;
+        }
+        /* Ховер-эффект для карточек */
+        .dish-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dish-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        /* Стили для печати */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block;
+            }
+            body {
+                background: white;
+                padding: 1rem;
+            }
+            .card-shadow {
+                box-shadow: none !important;
+                border: 1px solid #ddd;
+            }
+        }
+        /* Адаптив для сетки */
+        .dish-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        /* Стили для ингредиентов-ссылок */
+        .ingredient-link {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: default;
+        }
+        /* Квадратное фото (примерно) */
+        .dish-photo {
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            width: 100%;
+            height: auto;
+        }
+        @media (min-width: 768px) {
+            .dish-photo {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+<div id="app" class="min-h-screen"></div>
+
+<script>
+    // ==================== ДАННЫЕ БЛЮД ====================
+    const dishesData = [
+        {
+            id: "1",
+            name: "Сэндвич с говядиной и сыром Чеддер",
+            shortName: "Сэндв. с гов. и сыр Чеддер",
+            imageIn: "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop",
+            imageOut: "https://images.unsplash.com/photo-1553909489-cd47e0907980?w=400&h=400&fit=crop",
+            weight: "250 г",
+            section: "Завтраки",
+            category: "Сэндвичи",
+            tab: "kitchen",
+            rows: [
+                { ingredient: "Котлета говяжья", quantity: "1 шт", short_new: "Обжарить 1 мин/сторона", short_old: "Обжарить 2 мин/сторона", full_recipe: "Обжарить котлету до корочки, добавить специи, проверить температуру..." },
+                { ingredient: "Сыр Чеддер", quantity: "2 ломтика", short_new: "Положить на горячую котлету", short_old: "Положить и накрыть крышкой", full_recipe: "Нарезать сыр тонкими ломтиками, положить на котлету, дать расплавиться..." },
+                { ingredient: "Хлеб", quantity: "80 г", short_new: "Поджарить по 30 сек", short_old: "Поджарить на сухой сковороде 1 мин", full_recipe: "Нарезать хлеб, обжарить с двух сторон на гриле, до золотистой корочки..." },
+                { ingredient: "Соус бургер (ПФ)", quantity: "30 г", short_new: "Намазать нижнюю часть", short_old: "Намазать обе части", full_recipe: "Соус размешать, намазать на нижнюю часть булки, добавить зелень...", pf_content: [
+                    { ingredient: "Майонез" },
+                    { ingredient: "Кетчуп" },
+                    { ingredient: "Специи" }
+                ]}
+            ],
+            plating_in: "Тарелка для горячего",
+            plating_out: "Бумажный пакет",
+            presentation: "Тарелка для горячего",
+            appearance: "Хрустящий хлеб, сыр расплавлен",
+            videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            hallDescription: "Сочный сэндвич с говядиной, расплавленным сыром и фирменным соусом",
+            hallStandard: "Разрезан по диагонали, подается горячим",
+            modifiers: [
+                { name: "Лист салата", grammage: "40" },
+                { name: "Чеддер", grammage: "20" },
+                { name: "Томат", grammage: "20" }
+            ]
+        },
+        {
+            id: "2",
+            name: "Яйца Бенедикт",
+            shortName: "Яйца Бенедикт",
+            imageIn: "https://images.unsplash.com/photo-1608039825572-c5f6c9c6f1d6?w=400&h=400&fit=crop",
+            imageOut: "https://images.unsplash.com/photo-1608039825572-c5f6c9c6f1d6?w=400&h=400&fit=crop",
+            weight: "180 г",
+            section: "Завтраки",
+            category: "Яйца",
+            tab: "kitchen",
+            rows: [
+                { ingredient: "Яйцо пашот", quantity: "2 шт", short_new: "Варить 3 мин", short_old: "Варить 4 мин", full_recipe: "В кипящую воду добавить уксус, аккуратно разбить яйцо, варить 3 минуты." },
+                { ingredient: "Английский маффин", quantity: "1 шт", short_new: "Поджарить 1 мин", short_old: "Поджарить 2 мин", full_recipe: "Разрезать, обжарить на сухой сковороде до румяности." },
+                { ingredient: "Соус Голландез", quantity: "50 г", short_new: "Полить сверху", short_old: "Полить и подать отдельно", full_recipe: "Смешать желтки с маслом, добавить лимонный сок." }
+            ],
+            plating_in: "Тарелка для завтраков",
+            plating_out: "Контейнер",
+            presentation: "Тарелка для завтраков",
+            appearance: "Соус равномерно покрывает яйцо",
+            hallDescription: "Классические яйца Бенедикт с нежным соусом Голландез",
+            hallStandard: "Подавать на подогретой тарелке",
+            modifiers: [
+                { name: "Лосось", grammage: "50" },
+                { name: "Шпинат", grammage: "30" }
+            ]
+        },
+        {
+            id: "3",
+            name: "Чизбургер",
+            shortName: "Чизбургер",
+            imageIn: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
+            imageOut: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
+            weight: "300 г",
+            section: "Ужин",
+            category: "Бургеры",
+            tab: "kitchen",
+            rows: [
+                { ingredient: "Говяжья котлета", quantity: "150 г", short_new: "Гриль 2 мин", short_old: "Гриль 4 мин", full_recipe: "Обжарить на гриле до образования корочки, перевернуть." },
+                { ingredient: "Сыр Чеддер", quantity: "30 г", short_new: "Положить на котлету", short_old: "Расплавить под крышкой", full_recipe: "Накрыть сыром, дать расплавиться." }
+            ],
+            plating_in: "Деревянная доска",
+            plating_out: "Бургер‑бокс",
+            presentation: "Деревянная доска",
+            appearance: "Собран ровно, соус не вытекает",
+            hallDescription: "Сочный чизбургер с хрустящей булочкой",
+            hallStandard: "Подавать с картофелем фри",
+            modifiers: [
+                { name: "Бекон", grammage: "30" },
+                { name: "Карамелизированный лук", grammage: "20" }
+            ]
+        },
+        {
+            id: "4",
+            name: "Латте",
+            shortName: "Латте",
+            imageIn: "https://images.unsplash.com/photo-1570968915860-54d5c4a9b2b4?w=400&h=400&fit=crop",
+            imageOut: "https://images.unsplash.com/photo-1570968915860-54d5c4a9b2b4?w=400&h=400&fit=crop",
+            weight: "300 мл",
+            section: "Кофе",
+            category: "Горячий",
+            tab: "bar",
+            rows: [
+                { ingredient: "Эспрессо", quantity: "40 мл", short_new: "Двойной эспрессо", short_old: "Одинарный", full_recipe: "Сварить двойной эспрессо." },
+                { ingredient: "Молоко", quantity: "260 мл", short_new: "Вспенить до 65°C", short_old: "Вспенить до 70°C", full_recipe: "Вспенить молоко, влить тонкой струйкой." }
+            ],
+            plating_in: "Керамическая чашка",
+            plating_out: "Стакан с крышкой",
+            presentation: "Керамическая чашка",
+            appearance: "Ровная пенка, рисунок по желанию",
+            hallDescription: "Нежный кофе с молоком",
+            hallStandard: "Температура подачи 65–70°C",
+            modifiers: [
+                { name: "Сироп", grammage: "20" },
+                { name: "Корица", grammage: "2" }
+            ]
+        },
+        {
+            id: "5",
+            name: "Мохито",
+            shortName: "Мохито",
+            imageIn: "https://images.unsplash.com/photo-1551538827-9c037cb4f32c?w=400&h=400&fit=crop",
+            imageOut: "https://images.unsplash.com/photo-1551538827-9c037cb4f32c?w=400&h=400&fit=crop",
+            weight: "250 мл",
+            section: "Алко",
+            category: "Коктейли",
+            tab: "bar",
+            rows: [
+                { ingredient: "Ром", quantity: "50 мл", short_new: "Налить в шейкер", short_old: "Налить в стакан", full_recipe: "Смешать ром с лаймом и сахаром." },
+                { ingredient: "Мята", quantity: "10 г", short_new: "Размять в стакане", short_old: "Положить веточку", full_recipe: "Аккуратно размять мяту, не порвав листья." }
+            ],
+            plating_in: "Хайбол",
+            plating_out: "Пластиковый стакан",
+            presentation: "Хайбол",
+            appearance: "Лед дробленый, украшен мятой",
+            hallDescription: "Освежающий коктейль с ромом и мятой",
+            hallStandard: "Подавать с трубочкой и долькой лайма",
+            modifiers: [
+                { name: "Клубника", grammage: "30" },
+                { name: "Имбирь", grammage: "10" }
+            ]
+        }
+    ];
+
+    // Структура для кнопок разделов и категорий
+    const structure = {
+        kitchen: {
+            Завтраки: ["Сэндвичи", "Яйца"],
+            Ужин: ["Бургеры", "Горячее"]
+        },
+        bar: {
+            Кофе: ["Горячий", "Холодный"],
+            Алко: ["Коктейли", "Пиво"]
+        }
+    };
+
+    // ==================== ГЛОБАЛЬНОЕ СОСТОЯНИЕ ====================
+    let currentView = "main";
+    let currentDish = null;
+    let activeTab = "kitchen";
+    let activeSection = null;
+    let activeCategory = null;
+    let searchQuery = "";
+
+    // Состояние детальной карточки
+    let detailMode = "new";        // 'new' or 'old'
+    let detailExpandedPF = {};
+    let detailPhotoMode = "hall";  // 'hall' or 'delivery'
+
+    // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+    function getSections() {
+        return structure[activeTab] ? Object.keys(structure[activeTab]) : [];
+    }
+
+    function getCategories() {
+        if (!activeSection || !structure[activeTab] || !structure[activeTab][activeSection]) return [];
+        return structure[activeTab][activeSection];
+    }
+
+    function getFilteredDishes() {
+        return dishesData.filter(dish => {
+            if (dish.tab !== activeTab) return false;
+            if (activeSection && dish.section !== activeSection) return false;
+            if (activeCategory && dish.category !== activeCategory) return false;
+            if (searchQuery && !dish.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+            return true;
+        });
+    }
+
+    function setDefaultSectionAndCategory() {
+        const sections = getSections();
+        if (sections.length > 0) {
+            activeSection = sections[0];
+            const cats = structure[activeTab][activeSection];
+            activeCategory = cats && cats.length > 0 ? cats[0] : null;
+        } else {
+            activeSection = null;
+            activeCategory = null;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // ==================== ГЛАВНАЯ СТРАНИЦА ====================
+    function renderMain() {
+        const app = document.getElementById("app");
+        const filtered = getFilteredDishes();
+        const sections = getSections();
+        const categories = getCategories();
+
+        const html = `
+            <div>
+                <div class="bg-black text-white p-6 shadow-md flex justify-between items-center">
+                    <h1 class="text-3xl font-extrabold tracking-wide">GARAGE</h1>
+                    <span class="text-sm opacity-70">Обучение персонала</span>
+                </div>
+
+                <div class="p-6 max-w-7xl mx-auto">
+                    <div class="mb-4">
+                        <input id="searchInput" class="w-full border rounded-xl p-2" placeholder="Поиск блюда..." value="${escapeHtml(searchQuery)}">
+                    </div>
+
+                    <div class="flex border-b mb-6">
+                        <button id="tabKitchen" class="flex-1 py-2 text-center font-medium ${activeTab === 'kitchen' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}">Кухня</button>
+                        <button id="tabBar" class="flex-1 py-2 text-center font-medium ${activeTab === 'bar' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}">Бар</button>
+                    </div>
+
+                    <div class="flex gap-2 overflow-x-auto mb-3">
+                        ${sections.map(sec => `
+                            <button data-section="${sec}" class="px-4 py-2 rounded-full border ${activeSection === sec ? 'bg-black text-white' : 'bg-white text-gray-700'} hover:bg-gray-100 transition">${sec}</button>
+                        `).join('')}
+                    </div>
+
+                    <div class="flex gap-2 overflow-x-auto mb-4">
+                        ${categories.map(cat => `
+                            <button data-category="${cat}" class="px-3 py-1 rounded-full border text-sm ${activeCategory === cat ? 'bg-red-600 text-white' : 'bg-white text-gray-700'} hover:bg-gray-100 transition">${cat}</button>
+                        `).join('')}
+                    </div>
+
+                    <div class="dish-grid">
+                        ${filtered.map(dish => `
+                            <div class="dish-card bg-white rounded-2xl overflow-hidden border hover:shadow-lg cursor-pointer" data-dish-id="${dish.id}">
+                                <div class="h-44 overflow-hidden">
+                                    <img src="${dish.imageIn}" alt="${dish.name}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="p-4">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-semibold">${escapeHtml(dish.name)}</span>
+                                        <button class="open-dish-btn bg-black text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition" data-dish-id="${dish.id}">Открыть</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${filtered.length === 0 ? '<div class="text-gray-400 text-sm mt-4">Ничего не найдено</div>' : ''}
+                </div>
+            </div>
+        `;
+
+        app.innerHTML = html;
+
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            searchQuery = e.target.value;
+            renderMain();
+        });
+
+        document.getElementById("tabKitchen").addEventListener("click", () => {
+            activeTab = "kitchen";
+            setDefaultSectionAndCategory();
+            renderMain();
+        });
+        document.getElementById("tabBar").addEventListener("click", () => {
+            activeTab = "bar";
+            setDefaultSectionAndCategory();
+            renderMain();
+        });
+
+        document.querySelectorAll("[data-section]").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                activeSection = btn.getAttribute("data-section");
+                const cats = structure[activeTab][activeSection];
+                activeCategory = cats && cats.length ? cats[0] : null;
+                renderMain();
+            });
+        });
+
+        document.querySelectorAll("[data-category]").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                activeCategory = btn.getAttribute("data-category");
+                renderMain();
+            });
+        });
+
+        document.querySelectorAll(".open-dish-btn, .dish-card").forEach(el => {
+            el.addEventListener("click", (e) => {
+                const dishId = e.target.closest("[data-dish-id]")?.getAttribute("data-dish-id") || el.getAttribute("data-dish-id");
+                if (dishId) {
+                    const dish = dishesData.find(d => d.id === dishId);
+                    if (dish) {
+                        currentDish = dish;
+                        detailMode = "new";
+                        detailExpandedPF = {};
+                        detailPhotoMode = "hall";
+                        renderDetail();
+                    }
+                }
+            });
+        });
+    }
+
+    // ==================== ДЕТАЛЬНАЯ КАРТОЧКА ====================
+    function renderDetail() {
+        if (!currentDish) return;
+        const dish = currentDish;
+        const app = document.getElementById("app");
+
+        const kitchenHtml = generateKitchenTab(dish);
+        const hallHtml = generateHallTab(dish);
+        const activeDetailTab = window.activeDetailTab || "kitchen";
+
+        const html = `
+            <div class="p-6 max-w-7xl mx-auto">
+                <button id="backToMain" class="mb-4 inline-flex items-center text-gray-600 hover:text-gray-900 no-print">
+                    ← Назад к списку
+                </button>
+
+                <div class="border-b mb-4">
+                    <div class="flex gap-4">
+                        <button id="detailTabKitchen" class="py-2 px-4 font-medium ${activeDetailTab === 'kitchen' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}">Кухня</button>
+                        <button id="detailTabHall" class="py-2 px-4 font-medium ${activeDetailTab === 'hall' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}">Зал</button>
+                    </div>
+                </div>
+
+                <div id="detailContent">
+                    ${activeDetailTab === 'hall' ? hallHtml : kitchenHtml}
+                </div>
+            </div>
+        `;
+
+        app.innerHTML = html;
+
+        const tabKitchen = document.getElementById("detailTabKitchen");
+        const tabHall = document.getElementById("detailTabHall");
+        const detailContent = document.getElementById("detailContent");
+
+        function setActiveDetailTab(tab) {
+            window.activeDetailTab = tab;
+            if (tab === 'kitchen') {
+                detailContent.innerHTML = generateKitchenTab(dish);
+                attachKitchenHandlers(dish);
+                tabKitchen.className = "py-2 px-4 font-medium border-b-2 border-red-600 text-red-600";
+                tabHall.className = "py-2 px-4 font-medium text-gray-500";
+            } else {
+                detailContent.innerHTML = generateHallTab(dish);
+                attachHallHandlers(dish);
+                tabHall.className = "py-2 px-4 font-medium border-b-2 border-red-600 text-red-600";
+                tabKitchen.className = "py-2 px-4 font-medium text-gray-500";
+            }
+        }
+
+        tabKitchen.addEventListener("click", () => setActiveDetailTab("kitchen"));
+        tabHall.addEventListener("click", () => setActiveDetailTab("hall"));
+        document.getElementById("backToMain").addEventListener("click", () => {
+            currentView = "main";
+            renderMain();
+        });
+
+        if (activeDetailTab === 'kitchen') {
+            attachKitchenHandlers(dish);
+        } else {
+            attachHallHandlers(dish);
+        }
+    }
+
+    // Генерация вкладки Кухня (используем короткое имя)
+    function generateKitchenTab(dish) {
+        const currentImage = detailPhotoMode === 'hall' ? dish.imageIn : dish.imageOut;
+        const fullRecipeHtml = dish.rows.map(row => `
+            <div class="mb-2"><strong>${escapeHtml(row.ingredient)}:</strong> ${escapeHtml(row.full_recipe)}</div>
+        `).join('');
+
+        return `
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-wrap justify-between items-start mb-4 gap-2">
+                    <div>
+                        <h1 class="text-2xl font-bold">${escapeHtml(dish.shortName)}</h1>
+                        <div class="flex gap-2 mt-2">
+                            <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
+                            <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
+                        </div>
+                    </div>
+                    <span class="text-sm">${dish.weight || "—"}</span>
+                </div>
+
+                <div class="flex gap-2 mb-6">
+                    <button id="modeNewBtn" class="px-4 py-2 rounded-md ${detailMode === 'new' ? 'bg-black text-white' : 'border bg-white'}">Новая технология</button>
+                    <button id="modeOldBtn" class="px-4 py-2 rounded-md ${detailMode === 'old' ? 'bg-black text-white' : 'border bg-white'}">Старая технология</button>
+                    <button id="printBtn" class="px-4 py-2 border rounded-md ml-auto flex items-center gap-1 hidden md:inline-flex">🖨 Печать</button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex justify-center">
+                        <img src="${currentImage}" alt="${dish.name}" class="dish-photo rounded-2xl shadow-md">
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-lg mb-2">Ингредиенты</h2>
+                        <ul class="space-y-2">
+                            ${dish.rows.map(row => `
+                                <li class="flex justify-between border-b pb-1">
+                                    <span class="ingredient-link">${escapeHtml(row.ingredient)}</span>
+                                    <span class="text-gray-600">${escapeHtml(row.quantity)}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h2 class="font-semibold text-lg mb-2">Полный алгоритм приготовления</h2>
+                    <div class="p-4 border rounded-2xl bg-gray-50">
+                        ${fullRecipeHtml}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div class="border rounded-2xl p-4">
+                        <h3 class="font-semibold">Подача</h3>
+                        <p class="text-sm">${escapeHtml(dish.plating_in)}</p>
+                    </div>
+                    <div class="border rounded-2xl p-4">
+                        <h3 class="font-semibold">Внешний вид</h3>
+                        <p class="text-sm">${escapeHtml(dish.appearance)}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <a href="${dish.videoUrl || '#'}" target="_blank" class="block w-full text-center py-2 bg-black text-white rounded-md hover:bg-red-600 transition">▶ Смотреть видео приготовления</a>
+                </div>
+            </div>
+        `;
+    }
+
+    // Генерация вкладки Зал (используем полное имя)
+    function generateHallTab(dish) {
+        const currentImage = detailPhotoMode === 'hall' ? dish.imageIn : dish.imageOut;
+        // Модификаторы (граммовка) – размещаем в правой колонке после состава
+        const modifiersHtml = dish.modifiers && dish.modifiers.length ? `
+            <div class="mt-4 pt-2 border-t border-gray-200">
+                <h3 class="font-semibold text-md mb-2">Модификаторы</h3>
+                <div class="space-y-1">
+                    ${dish.modifiers.map(mod => `
+                        <div class="flex justify-between text-sm">
+                            <span>${escapeHtml(mod.name)}</span>
+                            <span class="text-gray-600">${escapeHtml(mod.grammage)} г</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
+
+        return `
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex flex-wrap justify-between items-start mb-4 gap-2">
+                    <div>
+                        <h1 class="text-2xl font-bold">${escapeHtml(dish.name)}</h1>
+                        <div class="flex gap-2 mt-2">
+                            <button id="photoModeHall" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'hall' ? 'bg-red-600 text-white' : 'bg-gray-100'}">На зал</button>
+                            <button id="photoModeDelivery" class="px-3 py-1 text-sm rounded-full border ${detailPhotoMode === 'delivery' ? 'bg-red-600 text-white' : 'bg-gray-100'}">Доставка</button>
+                        </div>
+                    </div>
+                    <button id="printBtnHall" class="px-4 py-2 border rounded-md flex items-center gap-1 hidden md:inline-flex">🖨 Печать</button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="flex justify-center">
+                        <img src="${currentImage}" alt="${dish.name}" class="dish-photo rounded-2xl shadow-md">
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-lg mb-2">Состав</h2>
+                        <ul class="space-y-2">
+                            ${dish.rows.map((row, idx) => `
+                                <li class="border-b pb-1">
+                                    <span class="ingredient-link">${escapeHtml(row.ingredient)}</span>
+                                    ${row.pf_content ? `
+                                        <button data-pf-index="${idx}" class="toggle-pf-btn ml-2 text-xs text-blue-500 underline">(состав ПФ)</button>
+                                        <div id="pfContent-${idx}" class="mt-2 p-2 border rounded-xl bg-gray-50 ${detailExpandedPF[idx] ? '' : 'hidden'}">
+                                            ${row.pf_content.map(pf => `
+                                                <div class="text-sm">• ${escapeHtml(pf.ingredient)}</div>
+                                            `).join('')}
+                                            <button class="mt-2 w-full py-1 border rounded-md text-sm">Перейти на полную карточку заготовки (ПФ)</button>
+                                        </div>
+                                    ` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                        ${modifiersHtml}
+                    </div>
+                </div>
+
+                <div class="border rounded-2xl p-4 mt-6">
+                    <h3 class="font-semibold">Описание</h3>
+                    <p class="text-sm">${escapeHtml(dish.hallDescription || "—")}</p>
+                </div>
+
+                <div class="border rounded-2xl p-4 mt-4">
+                    <h3 class="font-semibold">Стандарт подачи</h3>
+                    <p class="text-sm">${escapeHtml(dish.hallStandard || "—")}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    // Обработчики для кухни
+    function attachKitchenHandlers(dish) {
+        const modeNew = document.getElementById("modeNewBtn");
+        const modeOld = document.getElementById("modeOldBtn");
+        const printBtn = document.getElementById("printBtn");
+        const photoHall = document.getElementById("photoModeHall");
+        const photoDelivery = document.getElementById("photoModeDelivery");
+
+        if (modeNew) modeNew.addEventListener("click", () => { detailMode = "new"; renderDetail(); });
+        if (modeOld) modeOld.addEventListener("click", () => { detailMode = "old"; renderDetail(); });
+        if (printBtn) printBtn.addEventListener("click", () => window.print());
+        if (photoHall) photoHall.addEventListener("click", () => { detailPhotoMode = "hall"; renderDetail(); });
+        if (photoDelivery) photoDelivery.addEventListener("click", () => { detailPhotoMode = "delivery"; renderDetail(); });
+    }
+
+    // Обработчики для зала
+    function attachHallHandlers(dish) {
+        const printBtn = document.getElementById("printBtnHall");
+        const photoHall = document.getElementById("photoModeHall");
+        const photoDelivery = document.getElementById("photoModeDelivery");
+
+        if (printBtn) printBtn.addEventListener("click", () => window.print());
+        if (photoHall) photoHall.addEventListener("click", () => { detailPhotoMode = "hall"; renderDetail(); });
+        if (photoDelivery) photoDelivery.addEventListener("click", () => { detailPhotoMode = "delivery"; renderDetail(); });
+
+        document.querySelectorAll(".toggle-pf-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                const idx = parseInt(btn.getAttribute("data-pf-index"), 10);
+                if (!isNaN(idx)) {
+                    detailExpandedPF[idx] = !detailExpandedPF[idx];
+                    renderDetail();
+                }
+            });
+        });
+    }
+
+    // Инициализация
+    function init() {
+        setDefaultSectionAndCategory();
+        renderMain();
+    }
+
+    init();
+</script>
+</body>
+</html>
